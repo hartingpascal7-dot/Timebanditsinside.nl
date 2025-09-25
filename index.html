@@ -1,924 +1,258 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Time Bandits Inside</title>
-    <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Inter:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            color: white;
-            background-image: linear-gradient(135deg, rgba(76, 29, 149, 1) 0%, rgba(29, 78, 216, 1) 100%);
-        }
-        
-        .menu-link {
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .menu-link:hover {
-            color: #ff00ff;
-            transform: scale(1.1);
-        }
-
-        .menu-link:hover::before {
-            content: '*';
-            position: absolute;
-            left: -1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 1.5rem;
-            color: #ff00ff;
-            animation: glitter 0.5s infinite;
-        }
-        
-        .menu-link:hover::after {
-            content: '*';
-            position: absolute;
-            right: -1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 1.5rem;
-            color: #ff00ff;
-            animation: glitter 0.5s infinite reverse;
-        }
-        
-        .menu-link.active {
-            color: #ff00ff;
-        }
-
-        @keyframes glitter {
-            0% { opacity: 0; }
-            50% { opacity: 1; }
-            100% { opacity: 0; }
-        }
-
-        .star-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        .star {
-            position: absolute;
-            background-color: white;
-            border-radius: 50%;
-            animation: star-fall linear infinite;
-        }
-
-        @keyframes star-fall {
-            0% {
-                transform: translateY(-100vh) rotate(0deg);
-            }
-            100% {
-                transform: translateY(100vh) rotate(360deg);
-            }
-        }
-
-        .content-section {
-            display: none;
-        }
-
-        .content-section.active {
-            display: block;
-        }
-        
-        /* Form styling */
-        .form-input, .form-select, .form-textarea {
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        .form-input:focus, .form-select:focus, .form-textarea:focus {
-            border-color: #ff00ff;
-            box-shadow: 0 0 5px #ff00ff;
-        }
-
-        .form-button {
-            background-color: #ff00ff;
-            color: black;
-            font-weight: bold;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .form-button:hover {
-            transform: scale(1.05);
-            background-color: #e600e6;
-        }
-
-        .table-header {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .table-row {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        #user-name, #event-type, #filter-month, #filter-type, #filter-name {
-            background-color: #add8e6; /* Lichtblauw */
-            color: black;
-        }
-
-        #user-name option, #event-type option, #filter-month option, #filter-type option, #filter-name option {
-            color: black;
-            background-color: white;
-        }
-
-        .file-upload-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .file-upload-input {
-            display: none; /* Hide the file input */
-        }
-
-        .file-list {
-            list-style: none;
-            padding: 0;
-            width: 100%;
-        }
-
-        .file-list li {
-            background-color: rgba(255, 255, 255, 0.1);
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-        
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Bandits Inside</title>
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+/* --- Je bestaande CSS hier --- */
+/* ... kopieer alle CSS van jouw code ... */
+</style>
 </head>
 <body class="flex flex-col items-center min-h-screen p-4 overflow-hidden">
-    
-    <!-- Glitter stars -->
-    <div class="star-container"></div>
+<!-- Glitter stars -->
+<div class="star-container"></div>
 
-    <!-- Login Screen -->
-    <div id="login-screen" class="z-20 fixed inset-0 flex flex-col items-center justify-center p-4 bg-gray-900/90 backdrop-blur-sm">
-        <h2 class="text-3xl sm:text-4xl font-bold mb-6 text-center" style="font-family: 'Audiowide', sans-serif;">Voer de beveiligingscode in</h2>
-        <form id="login-form" class="flex flex-col items-center space-y-4">
-            <input type="password" id="security-code" placeholder="Beveiligingscode" class="form-input text-center w-full max-w-xs" required>
-            <button type="submit" class="form-button w-full max-w-xs">Verzenden</button>
-        </form>
-        <div id="login-message" class="mt-4 text-red-400"></div>
-    </div>
-    
-    <div id="main-content" class="z-10 flex-col items-center text-center pt-16 hidden">
-        <h1 class="text-4xl sm:text-5xl md:text-6xl font-black whitespace-nowrap" style="font-family: 'Audiowide', sans-serif;">
-            TIME BANDITS INSIDE
-        </h1>
-        
-        <!-- Navigation Menu -->
-        <nav class="mt-6 w-full max-w-lg">
-            <ul id="menu" class="flex flex-col sm:flex-row sm:justify-center space-y-4 sm:space-y-0 sm:space-x-8 text-xl sm:text-2xl md:text-3xl font-bold">
-                <li><a href="#agenda" class="menu-link block p-3 rounded-lg active" data-content="agenda-content">Agenda</a></li>
-                <li><a href="#setlijsten" class="menu-link block p-3 rounded-lg" data-content="setlijsten-content">Setlijsten</a></li>
-                <li><a href="#repertoire" class="menu-link block p-3 rounded-lg" data-content="repertoire-content">Repertoire</a></li>
-                <li><a href="#bladmuziek" class="menu-link block p-3 rounded-lg" data-content="bladmuziek-content">Bladmuziek</a></li>
-                <li><a href="#gebruikers" class="menu-link block p-3 rounded-lg" data-content="gebruikers-content">Gebruikers</a></li>
-            </ul>
-        </nav>
+<!-- Login Screen -->
+<div id="login-screen" class="z-20 fixed inset-0 flex flex-col items-center justify-center p-4 bg-gray-900/90 backdrop-blur-sm">
+<h2 class="text-3xl sm:text-4xl font-bold mb-6 text-center" style="font-family: 'Audiowide', sans-serif;">Voer de beveiligingscode in</h2>
+<form id="login-form" class="flex flex-col items-center space-y-4">
+<input type="password" id="security-code" placeholder="Beveiligingscode" class="form-input text-center w-full max-w-xs" required>
+<button type="submit" class="form-button w-full max-w-xs">Verzenden</button>
+</form>
+<div id="login-message" class="mt-4 text-red-400"></div>
+</div>
 
-        <!-- Content Sections -->
-        <div class="mt-12 w-full max-w-3xl p-6 rounded-lg bg-gray-900/50 shadow-lg content-section active" id="agenda-content">
-            <h2 class="text-3xl font-bold mb-6 text-center">Agenda</h2>
-            
-            <!-- Agenda Add Form -->
-            <form id="agenda-form" class="space-y-4">
-                <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
-                    <input type="text" id="event-name" placeholder="Naam evenement" class="form-input w-full" required>
-                    <input type="date" id="event-date" class="form-input w-full" required>
-                    <select id="event-type" class="form-select w-full" required>
-                        <option value="optreden">Optreden</option>
-                        <option value="optie">Optie</option>
-                        <option value="repetitie">Repetitie</option>
-                        <option value="bezet">Bezet</option>
-                    </select>
-                    <select id="user-name" class="form-select w-full" required>
-                        <option value="Time Bandits">Time Bandits</option>
-                        <option value="Alides">Alides</option>
-                        <option value="Sietse">Sietse</option>
-                        <option value="Ronald">Ronald</option>
-                        <option value="Felix">Felix</option>
-                        <option value="Pascal">Pascal</option>
-                        <option value="Daniëlle">Daniëlle</option>
-                        <option value="Kelly">Kelly</option>
-                    </select>
-                </div>
-                <div class="flex justify-center mt-4">
-                    <button type="submit" class="form-button">Voeg evenement toe</button>
-                </div>
-            </form>
+<div id="main-content" class="z-10 flex-col items-center text-center pt-16 hidden">
+<!-- --- Je bestaande HTML content hier --- -->
+<!-- Kopieer alles vanaf <h1>TIME BANDITS INSIDE</h1> tot aan het einde van body -->
+</div>
 
-            <div id="message-box" class="mt-4 p-4 text-center rounded-lg hidden"></div>
+<script>
+// --- JS code aangepast voor localStorage persistentie ---
+document.addEventListener('DOMContentLoaded', () => {
+    const loginScreen = document.getElementById('login-screen');
+    const mainContent = document.getElementById('main-content');
+    const loginForm = document.getElementById('login-form');
+    const securityCodeInput = document.getElementById('security-code');
+    const loginMessage = document.getElementById('login-message');
 
-            <!-- Agenda Filters -->
-            <div class="mt-8">
-                <h3 class="text-2xl font-bold mb-4">Filter evenementen</h3>
-                <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0 items-center justify-center">
-                    <select id="filter-month" class="form-select w-full md:w-auto">
-                        <option value="">Maand</option>
-                        <option value="1">Januari</option>
-                        <option value="2">Februari</option>
-                        <option value="3">Maart</option>
-                        <option value="4">April</option>
-                        <option value="5">Mei</option>
-                        <option value="6">Juni</option>
-                        <option value="7">Juli</option>
-                        <option value="8">Augustus</option>
-                        <option value="9">September</option>
-                        <option value="10">Oktober</option>
-                        <option value="11">November</option>
-                        <option value="12">December</option>
-                    </select>
-                    <select id="filter-type" class="form-select w-full md:w-auto">
-                        <option value="">Type</option>
-                        <option value="optreden">Optreden</option>
-                        <option value="optie">Optie</option>
-                        <option value="repetitie">Repetitie</option>
-                        <option value="bezet">Bezet</option>
-                    </select>
-                    <select id="filter-name" class="form-select w-full md:w-auto">
-                        <option value="">Naam</option>
-                        <option value="Time Bandits">Time Bandits</option>
-                        <option value="Alides">Alides</option>
-                        <option value="Sietse">Sietse</option>
-                        <option value="Ronald">Ronald</option>
-                        <option value="Felix">Felix</option>
-                        <option value="Pascal">Pascal</option>
-                        <option value="Daniëlle">Daniëlle</option>
-                        <option value="Kelly">Kelly</option>
-                    </select>
-                    <button id="filter-button" class="form-button mt-4 md:mt-0">Filter</button>
-                    <button id="reset-button" class="form-button mt-4 md:mt-0">Reset</button>
-                </div>
-            </div>
+    const agendaForm = document.getElementById('agenda-form');
+    const agendaList = document.getElementById('agenda-list');
+    const messageBox = document.getElementById('message-box');
 
-            <!-- Agenda List -->
-            <div class="mt-8">
-                <h3 class="text-2xl font-bold mb-4">Evenementenoverzicht</h3>
-                <div class="overflow-x-auto rounded-lg">
-                    <table class="min-w-full table-auto text-left rounded-lg">
-                        <thead class="table-header">
-                            <tr>
-                                <th class="p-3">Naam evenement</th>
-                                <th class="p-3">Datum</th>
-                                <th class="p-3">Type</th>
-                                <th class="p-3">Naam</th>
-                                <th class="p-3">Acties</th>
-                            </tr>
-                        </thead>
-                        <tbody id="agenda-list">
-                            <!-- Events will be added here dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+    const usersForm = document.getElementById('users-form');
+    const usersList = document.getElementById('users-list');
+    const userNameSelect = document.getElementById('user-name');
+    const filterNameSelect = document.getElementById('filter-name');
+    const filterMonthSelect = document.getElementById('filter-month');
+    const filterTypeSelect = document.getElementById('filter-type');
+    const filterButton = document.getElementById('filter-button');
+    const resetButton = document.getElementById('reset-button');
 
-        <div class="mt-12 w-full max-w-3xl p-6 rounded-lg bg-gray-900/50 shadow-lg content-section" id="setlijsten-content">
-            <h2 class="text-3xl font-bold text-center mb-6">Setlijsten</h2>
-            
-            <!-- Setlist Upload Form -->
-            <form id="setlijsten-form" class="space-y-4">
-                <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
-                    <input type="date" id="setlijst-date" class="form-input w-full" required>
-                    <input type="text" id="setlijst-description" placeholder="Omschrijving" class="form-input w-full" required>
-                    <label for="setlijst-file-input" class="form-button cursor-pointer text-center md:w-auto w-full">
-                        Kies bestand
-                    </label>
-                    <input type="file" id="setlijst-file-input" class="file-upload-input" required>
-                    <button type="submit" class="form-button w-full md:w-auto">Upload</button>
-                </div>
-                <p id="setlijst-filename" class="text-sm text-gray-400 mt-2 text-center"></p>
-            </form>
+    // Setlist
+    const setlijstenForm = document.getElementById('setlijsten-form');
+    const setlijstFileInput = document.getElementById('setlijst-file-input');
+    const setlijstFilenameDisplay = document.getElementById('setlijst-filename');
+    const setlijstenList = document.getElementById('setlijsten-list');
+    const setlijstMessageBox = document.getElementById('setlijst-message-box');
 
-            <div id="setlijst-message-box" class="mt-4 p-4 text-center rounded-lg hidden"></div>
+    // Repertoire
+    const repertoireForm = document.getElementById('repertoire-form');
+    const repertoireArtistInput = document.getElementById('repertoire-artist');
+    const repertoireFileInput = document.getElementById('repertoire-file-input');
+    const repertoireFilenameDisplay = document.getElementById('repertoire-filename');
+    const repertoireList = document.getElementById('repertoire-list');
+    const repertoireMessageBox = document.getElementById('repertoire-message-box');
 
-            <div class="mt-8">
-                <h3 class="text-2xl font-bold mb-4 text-center">Bijgevoegde bestanden</h3>
-                <div class="overflow-x-auto rounded-lg">
-                    <table class="min-w-full table-auto text-left rounded-lg">
-                        <thead class="table-header">
-                            <tr>
-                                <th class="p-3">Datum</th>
-                                <th class="p-3">Omschrijving</th>
-                                <th class="p-3">Bijlage</th>
-                                <th class="p-3 text-right">Acties</th>
-                            </tr>
-                        </thead>
-                        <tbody id="setlijsten-list">
-                            <!-- Setlist files will be added here dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+    // Sheet music
+    const sheetMusicForm = document.getElementById('bladmuziek-form');
+    const sheetMusicArtistInput = document.getElementById('sheet-music-artist');
+    const sheetMusicTitleInput = document.getElementById('sheet-music-title');
+    const sheetMusicFileInput = document.getElementById('sheet-music-file-input');
+    const sheetMusicFilenameDisplay = document.getElementById('sheet-music-filename');
+    const sheetMusicList = document.getElementById('sheet-music-list');
+    const sheetMusicMessageBox = document.getElementById('sheet-music-message-box');
+    const sheetMusicFilterArtistInput = document.getElementById('sheet-music-filter-artist');
+    const sheetMusicFilterButton = document.getElementById('sheet-music-filter-button');
+    const sheetMusicResetButton = document.getElementById('sheet-music-reset-button');
 
-        <div class="mt-12 w-full max-w-3xl p-6 rounded-lg bg-gray-900/50 shadow-lg content-section" id="repertoire-content">
-            <h2 class="text-3xl font-bold text-center mb-6">Repertoire</h2>
-            
-            <!-- Repertoire Upload Form -->
-            <form id="repertoire-form" class="space-y-4">
-                <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
-                    <input type="text" id="repertoire-artist" placeholder="Artiest" class="form-input w-full" required>
-                    <label for="repertoire-file-input" class="form-button cursor-pointer text-center md:w-auto w-full">
-                        Kies bestand
-                    </label>
-                    <input type="file" id="repertoire-file-input" class="file-upload-input" required>
-                    <button type="submit" class="form-button w-full md:w-auto">Upload</button>
-                </div>
-                <p id="repertoire-filename" class="text-sm text-gray-400 mt-2 text-center"></p>
-            </form>
+    // Menu links
+    const menuLinks = document.querySelectorAll('#menu a');
+    const contentSections = document.querySelectorAll('.content-section');
 
-            <div id="repertoire-message-box" class="mt-4 p-4 text-center rounded-lg hidden"></div>
+    // Initial data
+    let events = JSON.parse(localStorage.getItem('events')) || [];
+    let users = JSON.parse(localStorage.getItem('users')) || ["Time Bandits","Alides","Sietse","Ronald","Felix","Pascal","Daniëlle","Kelly"];
+    let setlijstenFiles = JSON.parse(localStorage.getItem('setlijstenFiles')) || [];
+    let repertoireFiles = JSON.parse(localStorage.getItem('repertoireFiles')) || [];
+    let sheetMusicFiles = JSON.parse(localStorage.getItem('sheetMusicFiles')) || [];
 
-            <div class="mt-8">
-                <h3 class="text-2xl font-bold mb-4 text-center">Bijgevoegde bestanden</h3>
-                <div class="overflow-x-auto rounded-lg">
-                    <table class="min-w-full table-auto text-left rounded-lg">
-                        <thead class="table-header">
-                            <tr>
-                                <th class="p-3">Artiest</th>
-                                <th class="p-3">Bijlage</th>
-                                <th class="p-3 text-right">Acties</th>
-                            </tr>
-                        </thead>
-                        <tbody id="repertoire-list">
-                            <!-- Repertoire files will be added here dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+    // --- Functies voor localStorage ---
+    function saveAll() {
+        localStorage.setItem('events', JSON.stringify(events));
+        localStorage.setItem('users', JSON.stringify(users));
+        localStorage.setItem('setlijstenFiles', JSON.stringify(setlijstenFiles));
+        localStorage.setItem('repertoireFiles', JSON.stringify(repertoireFiles));
+        localStorage.setItem('sheetMusicFiles', JSON.stringify(sheetMusicFiles));
+    }
 
-        <div class="mt-12 w-full max-w-3xl p-6 rounded-lg bg-gray-900/50 shadow-lg content-section" id="bladmuziek-content">
-            <h2 class="text-3xl font-bold text-center mb-6">Bladmuziek</h2>
-            
-            <!-- Bladmuziek Upload Form -->
-            <form id="bladmuziek-form" class="space-y-4">
-                <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
-                    <input type="text" id="sheet-music-artist" placeholder="Artiest" class="form-input w-full" required>
-                    <input type="text" id="sheet-music-title" placeholder="Titel" class="form-input w-full" required>
-                    <label for="sheet-music-file-input" class="form-button cursor-pointer text-center md:w-auto w-full">
-                        Kies bestand
-                    </label>
-                    <input type="file" id="sheet-music-file-input" class="file-upload-input" required>
-                    <button type="submit" class="form-button w-full md:w-auto">Upload</button>
-                </div>
-                <p id="sheet-music-filename" class="text-sm text-gray-400 mt-2 text-center"></p>
-            </form>
+    function showMessage(message, colorClass, element) {
+        element.textContent = message;
+        element.className = `mt-4 p-4 text-center rounded-lg ${colorClass}`;
+        element.style.display = 'block';
+        setTimeout(() => { element.style.display = 'none'; }, 3000);
+    }
 
-            <div id="sheet-music-message-box" class="mt-4 p-4 text-center rounded-lg hidden"></div>
-
-            <!-- Bladmuziek Filters -->
-            <div class="mt-8">
-                <h3 class="text-2xl font-bold mb-4">Filter op Artiest</h3>
-                <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0 items-center justify-center">
-                    <input type="text" id="sheet-music-filter-artist" placeholder="Artiestnaam" class="form-input w-full md:w-auto">
-                    <button id="sheet-music-filter-button" class="form-button mt-4 md:mt-0">Filter</button>
-                    <button id="sheet-music-reset-button" class="form-button mt-4 md:mt-0">Reset</button>
-                </div>
-            </div>
-
-            <div class="mt-8">
-                <h3 class="text-2xl font-bold mb-4 text-center">Bijgevoegde bestanden</h3>
-                <div class="overflow-x-auto rounded-lg">
-                    <table class="min-w-full table-auto text-left rounded-lg">
-                        <thead class="table-header">
-                            <tr>
-                                <th class="p-3">Artiest</th>
-                                <th class="p-3">Titel</th>
-                                <th class="p-3">Bijlage</th>
-                                <th class="p-3 text-right">Acties</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sheet-music-list">
-                            <!-- Sheet music files will be added here dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="mt-12 w-full max-w-3xl p-6 rounded-lg bg-gray-900/50 shadow-lg content-section" id="gebruikers-content">
-            <h2 class="text-3xl font-bold mb-6 text-center">Gebruikers</h2>
-            
-            <!-- Gebruikers Add Form -->
-            <form id="users-form" class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0 items-center justify-center">
-                <input type="text" id="new-user-name" placeholder="Voer naam in" class="form-input w-full" required>
-                <button type="submit" class="form-button w-full md:w-auto">Voeg gebruiker toe</button>
-            </form>
-
-            <!-- Gebruikers List -->
-            <div class="mt-8">
-                <h3 class="text-2xl font-bold mb-4">Lijst van gebruikers</h3>
-                <ul id="users-list" class="list-disc list-inside space-y-2 text-left"></ul>
-            </div>
-        </div>
-    </div>
-    
-    <script>
-        // JavaScript for dynamic star glitter effect and content switching
-        function createStars() {
-            const container = document.querySelector('.star-container');
-            const numStars = 50;
-            for (let i = 0; i < numStars; i++) {
-                const star = document.createElement('div');
-                star.className = 'star';
-                const size = Math.random() * 3 + 1;
-                star.style.width = `${size}px`;
-                star.style.height = `${size}px`;
-                star.style.top = `${Math.random() * 100}%`;
-                star.style.left = `${Math.random() * 100}%`;
-                star.style.animationDuration = `${Math.random() * 10 + 5}s`;
-                star.style.animationDelay = `-${Math.random() * 5}s`;
-                container.appendChild(star);
-            }
+    // --- Login ---
+    loginForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const code = securityCodeInput.value.trim();
+        if(code === 'Alides54') {
+            loginScreen.style.display='none';
+            mainContent.style.display='flex';
+        } else {
+            loginMessage.textContent = 'Verkeerde code. Probeer opnieuw.';
         }
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            createStars();
+    });
 
-            const loginScreen = document.getElementById('login-screen');
-            const mainContent = document.getElementById('main-content');
-            const loginForm = document.getElementById('login-form');
-            const securityCodeInput = document.getElementById('security-code');
-            const loginMessage = document.getElementById('login-message');
-
-            const menuLinks = document.querySelectorAll('#menu a');
-            const contentSections = document.querySelectorAll('.content-section');
-            const agendaForm = document.getElementById('agenda-form');
-            const agendaList = document.getElementById('agenda-list');
-            const messageBox = document.getElementById('message-box');
-            const usersForm = document.getElementById('users-form');
-            const usersList = document.getElementById('users-list');
-            const userNameSelect = document.getElementById('user-name');
-            const filterNameSelect = document.getElementById('filter-name');
-            const filterMonthSelect = document.getElementById('filter-month');
-            const filterTypeSelect = document.getElementById('filter-type');
-            const filterButton = document.getElementById('filter-button');
-            const resetButton = document.getElementById('reset-button');
-
-            // Setlist elements
-            const setlijstenForm = document.getElementById('setlijsten-form');
-            const setlijstFileInput = document.getElementById('setlijst-file-input');
-            const setlijstFilenameDisplay = document.getElementById('setlijst-filename');
-            const setlijstenList = document.getElementById('setlijsten-list');
-            const setlijstMessageBox = document.getElementById('setlijst-message-box');
-            
-            // Repertoire elements
-            const repertoireForm = document.getElementById('repertoire-form');
-            const repertoireArtistInput = document.getElementById('repertoire-artist');
-            const repertoireFileInput = document.getElementById('repertoire-file-input');
-            const repertoireFilenameDisplay = document.getElementById('repertoire-filename');
-            const repertoireList = document.getElementById('repertoire-list');
-            const repertoireMessageBox = document.getElementById('repertoire-message-box');
-
-            // Bladmuziek elements
-            const sheetMusicForm = document.getElementById('bladmuziek-form');
-            const sheetMusicArtistInput = document.getElementById('sheet-music-artist');
-            const sheetMusicTitleInput = document.getElementById('sheet-music-title');
-            const sheetMusicFileInput = document.getElementById('sheet-music-file-input');
-            const sheetMusicFilenameDisplay = document.getElementById('sheet-music-filename');
-            const sheetMusicList = document.getElementById('sheet-music-list');
-            const sheetMusicMessageBox = document.getElementById('sheet-music-message-box');
-            const sheetMusicFilterArtistInput = document.getElementById('sheet-music-filter-artist');
-            const sheetMusicFilterButton = document.getElementById('sheet-music-filter-button');
-            const sheetMusicResetButton = document.getElementById('sheet-music-reset-button');
-
-
-            let events = [];
-            let setlijstenFiles = [];
-            let repertoireFiles = [];
-            let sheetMusicFiles = [];
-            const initialUsers = ["Time Bandits", "Alides", "Sietse", "Ronald", "Felix", "Pascal", "Daniëlle", "Kelly"];
-            let users = [...initialUsers];
-
-            function renderUsers() {
-                usersList.innerHTML = '';
-                userNameSelect.innerHTML = '';
-                filterNameSelect.innerHTML = '<option value="">Naam</option>';
-
-                users.forEach(user => {
-                    const listItem = document.createElement('li');
-                    listItem.textContent = user;
-                    usersList.appendChild(listItem);
-                    
-                    const option = document.createElement('option');
-                    option.value = user;
-                    option.textContent = user;
-                    userNameSelect.appendChild(option);
-
-                    const filterOption = option.cloneNode(true);
-                    filterNameSelect.appendChild(filterOption);
-                });
-            }
-
-            renderUsers();
-            renderEvents(events);
-            renderSetlijsten();
-            renderRepertoire();
-            renderSheetMusic(sheetMusicFiles);
-
-            loginForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const code = securityCodeInput.value.trim();
-                const correctCode = 'Alides54';
-
-                if (code === correctCode) {
-                    loginScreen.style.display = 'none';
-                    mainContent.style.display = 'flex';
-                } else {
-                    loginMessage.textContent = 'Verkeerde code. Probeer het opnieuw.';
-                }
-            });
-
-            menuLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    
-                    // Verwijder 'active' class van alle links
-                    menuLinks.forEach(item => item.classList.remove('active'));
-                    
-                    // Voeg 'active' class toe aan de geklikte link
-                    e.target.classList.add('active');
-                    
-                    // Verberg alle contentsecties
-                    contentSections.forEach(section => section.classList.remove('active'));
-                    
-                    // Toon de bijbehorende contentsectie
-                    const contentId = e.target.getAttribute('data-content');
-                    const targetSection = document.getElementById(contentId);
-                    if (targetSection) {
-                        targetSection.classList.add('active');
-                    }
-                });
-            });
-
-            usersForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const newUser = document.getElementById('new-user-name').value.trim();
-                if (newUser && !users.includes(newUser)) {
-                    users.push(newUser);
-                    renderUsers();
-                    document.getElementById('new-user-name').value = '';
-                }
-            });
-
-            agendaForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-
-                const eventName = document.getElementById('event-name').value;
-                const eventDate = document.getElementById('event-date').value;
-                const eventType = document.getElementById('event-type').value;
-                const userName = document.getElementById('user-name').value;
-
-                if (!eventName || !eventDate || !eventType || !userName) {
-                    showMessage("Alle velden moeten worden ingevuld.", "bg-red-500", messageBox);
-                    return;
-                }
-
-                const newEvent = {
-                    name: eventName,
-                    date: eventDate,
-                    type: eventType,
-                    user: userName
-                };
-                events.push(newEvent);
-                renderEvents(events);
-                agendaForm.reset();
-                showMessage("Evenement succesvol toegevoegd!", "bg-green-500", messageBox);
-            });
-            
-            // Eventlistener voor de prullenbak-icoontjes
-            agendaList.addEventListener('click', (e) => {
-                const deleteButton = e.target.closest('.delete-event-button');
-                if (deleteButton) {
-                    const indexToDelete = deleteButton.getAttribute('data-index');
-                    if (indexToDelete !== null) {
-                        events.splice(indexToDelete, 1);
-                        renderEvents(events);
-                        showMessage("Evenement succesvol verwijderd.", "bg-green-500", messageBox);
-                    }
-                }
-            });
-
-            function renderEvents(eventsToRender) {
-                // Sorteer de evenementen op datum
-                const sortedEvents = [...eventsToRender].sort((a, b) => new Date(a.date) - new Date(b.date));
-                
-                agendaList.innerHTML = '';
-                sortedEvents.forEach((event, index) => {
-                    const newRow = document.createElement('tr');
-                    newRow.className = 'table-row';
-                    newRow.innerHTML = `
-                        <td class="p-3 border-t border-gray-700">${event.name}</td>
-                        <td class="p-3 border-t border-gray-700">${event.date}</td>
-                        <td class="p-3 border-t border-gray-700">${event.type}</td>
-                        <td class="p-3 border-t border-gray-700">${event.user}</td>
-                        <td class="p-3 border-t border-gray-700 text-right">
-                            <button class="delete-event-button text-red-400 hover:text-red-600 transition-colors" data-index="${index}" title="Verwijder evenement">
-                                <svg class="w-5 h-5 inline-block" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-1 1v1H5a1 1 0 000 2h1v10a2 2 0 002 2h6a2 2 0 002-2V6h1a1 1 0 100-2h-3V3a1 1 0 00-1-1H9zM7 6h6v10H7V6zm2-3a1 1 0 011-1h2a1 1 0 011 1v1H9V3z" clip-rule="evenodd"></path>
-                                </svg>
-                            </button>
-                        </td>
-                    `;
-                    agendaList.appendChild(newRow);
-                });
-            }
-
-            function showMessage(message, colorClass, element) {
-                element.textContent = message;
-                element.className = `mt-4 p-4 text-center rounded-lg ${colorClass}`;
-                element.style.display = 'block';
-                setTimeout(() => {
-                    element.style.display = 'none';
-                }, 3000); // Verberg na 3 seconden
-            }
-
-            filterButton.addEventListener('click', () => {
-                const selectedMonth = filterMonthSelect.value;
-                const selectedType = filterTypeSelect.value;
-                const selectedName = filterNameSelect.value;
-
-                const filteredEvents = events.filter(event => {
-                    const eventMonth = new Date(event.date).getMonth() + 1;
-                    const monthMatch = !selectedMonth || parseInt(selectedMonth) === eventMonth;
-                    const typeMatch = !selectedType || selectedType === event.type;
-                    const nameMatch = !selectedName || selectedName === event.user;
-                    
-                    return monthMatch && typeMatch && nameMatch;
-                });
-                
-                renderEvents(filteredEvents);
-            });
-
-            resetButton.addEventListener('click', () => {
-                filterMonthSelect.value = '';
-                filterTypeSelect.value = '';
-                filterNameSelect.value = '';
-                renderEvents(events);
-            });
-
-            // Setlijsten-functionaliteit
-            setlijstFileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    setlijstFilenameDisplay.textContent = `Geselecteerd: ${file.name}`;
-                } else {
-                    setlijstFilenameDisplay.textContent = '';
-                }
-            });
-
-            setlijstenForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const setlijstDate = document.getElementById('setlijst-date').value;
-                const setlijstDescription = document.getElementById('setlijst-description').value;
-                const file = setlijstFileInput.files[0];
-
-                if (!setlijstDate || !setlijstDescription || !file) {
-                    showMessage("Vul alle velden in en kies een bestand.", "bg-red-500", setlijstMessageBox);
-                    return;
-                }
-
-                const newSetlijstItem = {
-                    date: setlijstDate,
-                    description: setlijstDescription,
-                    file: file // Store the actual File object
-                };
-
-                setlijstenFiles.push(newSetlijstItem);
-                renderSetlijsten();
-                setlijstenForm.reset();
-                setlijstFilenameDisplay.textContent = ''; // Reset filename display
-                showMessage("Bestand succesvol geüpload!", "bg-green-500", setlijstMessageBox);
-            });
-            
-            setlijstenList.addEventListener('click', (e) => {
-                const deleteButton = e.target.closest('.delete-setlijst-button');
-                if (deleteButton) {
-                    const indexToDelete = deleteButton.getAttribute('data-index');
-                    if (indexToDelete !== null) {
-                        // Revoke the temporary URL to free up memory
-                        const item = setlijstenFiles[indexToDelete];
-                        URL.revokeObjectURL(item.file);
-                        
-                        setlijstenFiles.splice(indexToDelete, 1);
-                        renderSetlijsten();
-                        showMessage("Bestand succesvol verwijderd.", "bg-green-500", setlijstMessageBox);
-                    }
-                }
-            });
-
-            function renderSetlijsten() {
-                setlijstenList.innerHTML = '';
-                setlijstenFiles.forEach((item, index) => {
-                    // Create a temporary URL for the file
-                    const fileUrl = URL.createObjectURL(item.file);
-                    
-                    const newRow = document.createElement('tr');
-                    newRow.className = 'table-row';
-                    newRow.innerHTML = `
-                        <td class="p-3 border-t border-gray-700">${item.date}</td>
-                        <td class="p-3 border-t border-gray-700">${item.description}</td>
-                        <td class="p-3 border-t border-gray-700">
-                            <a href="${fileUrl}" target="_blank" class="text-blue-300 hover:underline">
-                                ${item.file.name}
-                            </a>
-                        </td>
-                        <td class="p-3 border-t border-gray-700 text-right">
-                            <button class="delete-setlijst-button text-red-400 hover:text-red-600 transition-colors" data-index="${index}" title="Verwijder bestand">
-                                <svg class="w-5 h-5 inline-block" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-1 1v1H5a1 1 0 000 2h1v10a2 2 0 002 2h6a2 2 0 002-2V6h1a1 1 0 100-2h-3V3a1 1 0 00-1-1H9zM7 6h6v10H7V6zm2-3a1 1 0 011-1h2a1 1 0 011 1v1H9V3z" clip-rule="evenodd"></path>
-                                </svg>
-                            </button>
-                        </td>
-                    `;
-                    setlijstenList.appendChild(newRow);
-                });
-            }
-
-            // Repertoire-functionaliteit
-            repertoireFileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    repertoireFilenameDisplay.textContent = `Geselecteerd: ${file.name}`;
-                } else {
-                    repertoireFilenameDisplay.textContent = '';
-                }
-            });
-            
-            repertoireForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const artist = repertoireArtistInput.value;
-                const file = repertoireFileInput.files[0];
-
-                if (!artist || !file) {
-                    showMessage("Vul de artiest in en kies een bestand.", "bg-red-500", repertoireMessageBox);
-                    return;
-                }
-                
-                const newRepertoireItem = {
-                    artist: artist,
-                    file: file
-                };
-
-                repertoireFiles.push(newRepertoireItem);
-                renderRepertoire();
-                repertoireForm.reset();
-                repertoireFilenameDisplay.textContent = '';
-                showMessage("Bestand succesvol geüpload!", "bg-green-500", repertoireMessageBox);
-            });
-            
-            repertoireList.addEventListener('click', (e) => {
-                const deleteButton = e.target.closest('.delete-repertoire-button');
-                if (deleteButton) {
-                    const indexToDelete = deleteButton.getAttribute('data-index');
-                    if (indexToDelete !== null) {
-                        // Revoke the temporary URL
-                        const item = repertoireFiles[indexToDelete];
-                        URL.revokeObjectURL(item.file);
-
-                        repertoireFiles.splice(indexToDelete, 1);
-                        renderRepertoire();
-                        showMessage("Bestand succesvol verwijderd.", "bg-green-500", repertoireMessageBox);
-                    }
-                }
-            });
-
-            function renderRepertoire() {
-                repertoireList.innerHTML = '';
-                repertoireFiles.forEach((item, index) => {
-                    const fileUrl = URL.createObjectURL(item.file);
-                    
-                    const newRow = document.createElement('tr');
-                    newRow.className = 'table-row';
-                    newRow.innerHTML = `
-                        <td class="p-3 border-t border-gray-700">${item.artist}</td>
-                        <td class="p-3 border-t border-gray-700">
-                            <a href="${fileUrl}" target="_blank" class="text-blue-300 hover:underline">
-                                ${item.file.name}
-                            </a>
-                        </td>
-                        <td class="p-3 border-t border-gray-700 text-right">
-                            <button class="delete-repertoire-button text-red-400 hover:text-red-600 transition-colors" data-index="${index}" title="Verwijder bestand">
-                                <svg class="w-5 h-5 inline-block" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-1 1v1H5a1 1 0 000 2h1v10a2 2 0 002 2h6a2 2 0 002-2V6h1a1 1 0 100-2h-3V3a1 1 0 00-1-1H9zM7 6h6v10H7V6zm2-3a1 1 0 011-1h2a1 1 0 011 1v1H9V3z" clip-rule="evenodd"></path>
-                                </svg>
-                            </button>
-                        </td>
-                    `;
-                    repertoireList.appendChild(newRow);
-                });
-            }
-
-            // Bladmuziek-functionaliteit
-            sheetMusicFileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    sheetMusicFilenameDisplay.textContent = `Geselecteerd: ${file.name}`;
-                } else {
-                    sheetMusicFilenameDisplay.textContent = '';
-                }
-            });
-
-            sheetMusicForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const artist = sheetMusicArtistInput.value;
-                const title = sheetMusicTitleInput.value;
-                const file = sheetMusicFileInput.files[0];
-
-                if (!artist || !title || !file) {
-                    showMessage("Vul de artiest en titel in en kies een bestand.", "bg-red-500", sheetMusicMessageBox);
-                    return;
-                }
-
-                const newSheetMusicItem = {
-                    artist: artist,
-                    title: title,
-                    file: file
-                };
-
-                sheetMusicFiles.push(newSheetMusicItem);
-                renderSheetMusic(sheetMusicFiles);
-                sheetMusicForm.reset();
-                sheetMusicFilenameDisplay.textContent = '';
-                showMessage("Bestand succesvol geüpload!", "bg-green-500", sheetMusicMessageBox);
-            });
-
-            sheetMusicFilterButton.addEventListener('click', () => {
-                const filterText = sheetMusicFilterArtistInput.value.toLowerCase();
-                const filteredFiles = sheetMusicFiles.filter(item => 
-                    item.artist.toLowerCase().includes(filterText)
-                );
-                renderSheetMusic(filteredFiles);
-            });
-            
-            sheetMusicResetButton.addEventListener('click', () => {
-                sheetMusicFilterArtistInput.value = '';
-                renderSheetMusic(sheetMusicFiles);
-            });
-
-            sheetMusicList.addEventListener('click', (e) => {
-                const deleteButton = e.target.closest('.delete-sheet-music-button');
-                if (deleteButton) {
-                    const indexToDelete = deleteButton.getAttribute('data-index');
-                    if (indexToDelete !== null) {
-                        const item = sheetMusicFiles[indexToDelete];
-                        URL.revokeObjectURL(item.file);
-
-                        sheetMusicFiles.splice(indexToDelete, 1);
-                        renderSheetMusic(sheetMusicFiles);
-                        showMessage("Bestand succesvol verwijderd.", "bg-green-500", sheetMusicMessageBox);
-                    }
-                }
-            });
-
-            function renderSheetMusic(filesToRender) {
-                sheetMusicList.innerHTML = '';
-                filesToRender.forEach((item, index) => {
-                    const fileUrl = URL.createObjectURL(item.file);
-                    
-                    const newRow = document.createElement('tr');
-                    newRow.className = 'table-row';
-                    newRow.innerHTML = `
-                        <td class="p-3 border-t border-gray-700">${item.artist}</td>
-                        <td class="p-3 border-t border-gray-700">${item.title}</td>
-                        <td class="p-3 border-t border-gray-700">
-                            <a href="${fileUrl}" target="_blank" class="text-blue-300 hover:underline">
-                                ${item.file.name}
-                            </a>
-                        </td>
-                        <td class="p-3 border-t border-gray-700 text-right">
-                            <button class="delete-sheet-music-button text-red-400 hover:text-red-600 transition-colors" data-index="${index}" title="Verwijder bestand">
-                                <svg class="w-5 h-5 inline-block" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-1 1v1H5a1 1 0 000 2h1v10a2 2 0 002 2h6a2 2 0 002-2V6h1a1 1 0 100-2h-3V3a1 1 0 00-1-1H9zM7 6h6v10H7V6zm2-3a1 1 0 011-1h2a1 1 0 011 1v1H9V3z" clip-rule="evenodd"></path>
-                                </svg>
-                            </button>
-                        </td>
-                    `;
-                    sheetMusicList.appendChild(newRow);
-                });
-            }
+    // --- Gebruikers render ---
+    function renderUsers() {
+        usersList.innerHTML = '';
+        userNameSelect.innerHTML = '';
+        filterNameSelect.innerHTML = '<option value="">Naam</option>';
+        users.forEach(u => {
+            const li = document.createElement('li'); li.textContent=u; usersList.appendChild(li);
+            const opt = document.createElement('option'); opt.value=opt.textContent=u; userNameSelect.appendChild(opt);
+            const fopt = opt.cloneNode(true); filterNameSelect.appendChild(fopt);
         });
-    </script>
+    }
+    renderUsers();
+
+    usersForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const newUser = document.getElementById('new-user-name').value.trim();
+        if(newUser && !users.includes(newUser)) { users.push(newUser); renderUsers(); saveAll(); }
+        document.getElementById('new-user-name').value='';
+    });
+
+    // --- Agenda render ---
+    function renderEvents(arr) {
+        const sorted = [...arr].sort((a,b)=> new Date(a.date)-new Date(b.date));
+        agendaList.innerHTML='';
+        sorted.forEach((ev,i)=>{
+            const tr=document.createElement('tr'); tr.className='table-row';
+            tr.innerHTML=`
+                <td class="p-3 border-t border-gray-700">${ev.name}</td>
+                <td class="p-3 border-t border-gray-700">${ev.date}</td>
+                <td class="p-3 border-t border-gray-700">${ev.type}</td>
+                <td class="p-3 border-t border-gray-700">${ev.user}</td>
+                <td class="p-3 border-t border-gray-700 text-right">
+                    <button class="delete-event-button text-red-400 hover:text-red-600 transition-colors" data-index="${i}">Verwijder</button>
+                </td>
+            `;
+            agendaList.appendChild(tr);
+        });
+    }
+    renderEvents(events);
+
+    agendaForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const ev={ 
+            name: document.getElementById('event-name').value,
+            date: document.getElementById('event-date').value,
+            type: document.getElementById('event-type').value,
+            user: document.getElementById('user-name').value
+        };
+        events.push(ev); renderEvents(events); saveAll(); agendaForm.reset();
+        showMessage("Evenement toegevoegd!", "bg-green-500", messageBox);
+    });
+
+    agendaList.addEventListener('click', e=>{
+        if(e.target.closest('.delete-event-button')){
+            const idx = e.target.closest('.delete-event-button').dataset.index;
+            events.splice(idx,1); renderEvents(events); saveAll();
+            showMessage("Evenement verwijderd.", "bg-green-500", messageBox);
+        }
+    });
+
+    filterButton.addEventListener('click', ()=>{
+        const month=filterMonthSelect.value; const type=filterTypeSelect.value; const name=filterNameSelect.value;
+        renderEvents(events.filter(ev=>{
+            const m=new Date(ev.date).getMonth()+1;
+            return (!month||month==m)&&(!type||type==ev.type)&&(!name||name==ev.user);
+        }));
+    });
+
+    resetButton.addEventListener('click', ()=>{
+        filterMonthSelect.value=''; filterTypeSelect.value=''; filterNameSelect.value=''; renderEvents(events);
+    });
+
+    // --- Setlijsten / Repertoire / Sheet Music ---
+    // Voor bestanden slaan we base64 op in localStorage
+    function handleFileUpload(form, arr, input, listEl, messageEl, extraFields=[]) {
+        input.addEventListener('change',()=>{ input.files[0]?input.nextElementSibling.textContent=`Geselecteerd: ${input.files[0].name}`:''; });
+        form.addEventListener('submit', e=>{
+            e.preventDefault();
+            const file=input.files[0]; if(!file){ showMessage('Kies een bestand', 'bg-red-500', messageEl); return; }
+            const reader=new FileReader();
+            reader.onload=function(evt){
+                const obj={fileName:file.name,fileData:evt.target.result};
+                extraFields.forEach(f=>obj[f.key]=document.getElementById(f.id).value);
+                arr.push(obj); renderFileList(arr,listEl); saveAll(); form.reset(); input.nextElementSibling.textContent=''; 
+                showMessage("Bestand toegevoegd!", "bg-green-500", messageEl);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    function renderFileList(arr, listEl){
+        listEl.innerHTML='';
+        arr.forEach((item,i)=>{
+            const tr=document.createElement('tr'); tr.className='table-row';
+            const extraCols=Object.keys(item).filter(k=>k!=='fileName'&&k!=='fileData').map(k=>`<td class="p-3 border-t border-gray-700">${item[k]}</td>`).join('');
+            tr.innerHTML=`${extraCols}<td class="p-3 border-t border-gray-700"><a href="${item.fileData}" target="_blank">${item.fileName}</a></td>
+                <td class="p-3 border-t border-gray-700 text-right"><button data-index="${i}" class="delete-file-button text-red-400 hover:text-red-600">Verwijder</button></td>`;
+            listEl.appendChild(tr);
+        });
+    }
+
+    function attachDeleteHandler(arr,listEl){ listEl.addEventListener('click',e=>{
+        if(e.target.closest('.delete-file-button')){
+            const idx=e.target.closest('.delete-file-button').dataset.index; arr.splice(idx,1); renderFileList(arr,listEl); saveAll();
+        }
+    }); }
+
+    handleFileUpload(setlijstenForm,setlijstenFiles,setlijstFileInput,setlijstenList,setlijstMessageBox,[{id:'setlijst-date',key:'date'},{id:'setlijst-description',key:'description'}]);
+    attachDeleteHandler(setlijstenFiles,setlijstenList);
+
+    handleFileUpload(repertoireForm,repertoireFiles,repertoireFileInput,repertoireList,repertoireMessageBox,[{id:'repertoire-artist',key:'artist'}]);
+    attachDeleteHandler(repertoireFiles,repertoireList);
+
+    handleFileUpload(sheetMusicForm,sheetMusicFiles,sheetMusicFileInput,sheetMusicList,sheetMusicMessageBox,[{id:'sheet-music-artist',key:'artist'},{id:'sheet-music-title',key:'title'}]);
+    attachDeleteHandler(sheetMusicFiles,sheetMusicList);
+
+    // --- Menu ---
+    menuLinks.forEach(link=>{
+        link.addEventListener('click', e=>{
+            e.preventDefault();
+            menuLinks.forEach(l=>l.classList.remove('active'));
+            e.target.classList.add('active');
+            contentSections.forEach(s=>s.classList.remove('active'));
+            document.getElementById(e.target.dataset.content).classList.add('active');
+        });
+    });
+
+    // --- Filter sheet music ---
+    sheetMusicFilterButton.addEventListener('click', ()=>{
+        const f=sheetMusicFilterArtistInput.value.toLowerCase();
+        renderFileList(sheetMusicFiles.filter(it=>it.artist.toLowerCase().includes(f)),sheetMusicList);
+    });
+    sheetMusicResetButton.addEventListener('click', ()=>{
+        sheetMusicFilterArtistInput.value=''; renderFileList(sheetMusicFiles,sheetMusicList);
+    });
+});
+</script>
 </body>
 </html>
-
-
