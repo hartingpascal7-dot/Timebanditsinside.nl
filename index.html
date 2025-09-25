@@ -619,8 +619,11 @@
             });
 
             function renderEvents(eventsToRender) {
+                // Sorteer de evenementen op datum
+                const sortedEvents = [...eventsToRender].sort((a, b) => new Date(a.date) - new Date(b.date));
+                
                 agendaList.innerHTML = '';
-                eventsToRender.forEach((event, index) => {
+                sortedEvents.forEach((event, index) => {
                     const newRow = document.createElement('tr');
                     newRow.className = 'table-row';
                     newRow.innerHTML = `
@@ -917,4 +920,5 @@
     </script>
 </body>
 </html>
+
 
