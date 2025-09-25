@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Bandits Inside</title>
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+/* --- Je bestaande CSS hier --- */
+/* ... kopieer alle CSS van jouw code ... */
+</style>
+</head>
+<body class="flex flex-col items-center min-h-screen p-4 overflow-hidden">
+<!-- Glitter stars -->
+<div class="star-container"></div>
+
+<!-- Login Screen -->
+<div id="login-screen" class="z-20 fixed inset-0 flex flex-col items-center justify-center p-4 bg-gray-900/90 backdrop-blur-sm">
+<h2 class="text-3xl sm:text-4xl font-bold mb-6 text-center" style="font-family: 'Audiowide', sans-serif;">Voer de beveiligingscode in</h2>
+<form id="login-form" class="flex flex-col items-center space-y-4">
+<input type="password" id="security-code" placeholder="Beveiligingscode" class="form-input text-center w-full max-w-xs" required>
+<button type="submit" class="form-button w-full max-w-xs">Verzenden</button>
+</form>
+<div id="login-message" class="mt-4 text-red-400"></div>
+</div>
+
+<div id="main-content" class="z-10 flex-col items-center text-center pt-16 hidden">
+<!-- --- Je bestaande HTML content hier --- -->
+<!-- Kopieer alles vanaf <h1>TIME BANDITS INSIDE</h1> tot aan het einde van body -->
+</div>
+
+<script>
+// --- JS code aangepast voor localStorage persistentie ---
+document.addEventListener('DOMContentLoaded', () => {
+    const loginScreen = document.getElementById('login-screen');
+    const mainContent = document.getElementById('main-content');
+    const loginForm = document.getElementById('login-form');
+    const securityCodeInput = document.getElementById('security-code');
+    const loginMessage = document.getElementById('login-message');
+
+    const agendaForm = document.getElementById('agenda-form');
+    const agendaList = document.getElementById('agenda-list');
+    const messageBox = document.getElementById('message-box');
+
+    const usersForm = document.getElementById('users-form');
+    const usersList = document.getElementById('users-list');
+    const userNameSelect = document.getElementById('user-name');
+    const filterNameSelect = document.getElementById('filter-name');
+    const filterMonthSelect = document.getElementById('filter-month');
+    const filterTypeSelect = document.getElementById('filter-type');
+    const filterButton = document.getElementById('filter-button');
+    const resetButton = document.getElementById('reset-button');
+
+    // Setlist
+    const setlijstenForm = document.getElementById('setlijsten-form');
+    const setlijstFileInput = document.getElementById('setlijst-file-input');
+    const setlijstFilenameDisplay = document.getElementById('setlijst-filename');
+    const setlijstenList = document.getElementById('setlijsten-list');
+    const setlijstMessageBox = document.getElementById('setlijst-message-box');
+
+    // Repertoire
+    const repertoireForm = document.getElementById('repertoire-form');
+    const repertoireArtistInput = document.getElementById('repertoire-artist');
+    const repertoireFileInput = document.getElementById('repertoire-file-input');
+    const repertoireFilenameDisplay = document.getElementById('repertoire-filename');
+    const repertoireList = document.getElementById('repertoire-list');
+    const repertoireMessageBox = document.getElementById('repertoire-message-box');
+
+    // Sheet music
+    const sheetMusicForm = document.getElementById('bladmuziek-form');
+    const sheetMusicArtistInput = document.getElementById('sheet-music-artist');
+    const sheetMusicTitleInput = document.getElementById('sheet-music-title');
+    const sheetMusicFileInput = document.getElementById('sheet-music-file-input');
+    const sheetMusicFilenameDisplay = document.getElementById('sheet-music-filename');
+    const sheetMusicList = document.getElementById('sheet-music-list');
+    const sheetMusicMessageBox = document.getElementById('sheet-music-message-box');
+    const sheetMusicFilterArtistInput = document.getElementById('sheet-music-filter-artist');
+    const sheetMusicFilterButton = document.getElementById('sheet-music-filter-button');
+    const sheetMusicResetButton = document.getElementById('sheet-music-reset-button');
+
+    // Menu links
+    const menuLinks = document.querySelectorAll('#menu a');
+    const contentSections = document.querySelectorAll('.content-section');
+
+    // Initial data
+    let events = JSON.parse(localStorage.getItem('events')) || [];
+    let users = JSON.parse(localStorage.getItem('users')) || ["Time Bandits","Alides","Sietse","Ronald","Felix","Pascal","Daniëlle","Kelly"];
+    let setlijstenFiles = JSON.parse(localStorage.getItem('setlijstenFiles')) || [];
+    let repertoireFiles = JSON.parse(localStorage.getItem('repertoireFiles')) || [];
+    let sheetMusicFiles = JSON.parse(localStorage.getItem('sheetMusicFiles')) || [];
+
+    // --- Functies voor localStorage ---
+    function saveAll() {
+        localStorage.setItem('events', JSON.stringify(events));
+        localStorage.setItem('users', JSON.stringify(users));
+        localStorage.setItem('setlijstenFiles', JSON.stringify(setlijstenFiles));
+        localStorage.setItem('repertoireFiles', JSON.stringify(repertoireFiles));
+        localStorage.setItem('sheetMusicFiles', JSON.stringify(sheetMusicFiles));
+    }
+
+    function showMessage(message, colorClass, element) {
+        element.textContent = message;
+        element.className = `mt-4 p-4 text-center rounded-lg ${colorClass}`;
+        element.style.display = 'block';
+        setTimeout(() => { element.style.display = 'none'; }, 3000);
+    }
+
+    // --- Login ---
+    loginForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const code = securityCodeInput.value.trim();
+        if(code === 'Alides54') {
+            loginScreen.style.display='none';
+            mainContent.style.display='flex';
+        } else {
+            loginMessage.textContent = 'Verkeerde code. Probeer opnieuw.';
+        }
+    });
+
+    // --- Gebruikers render ---
+    function renderUsers() {
+        usersList.innerHTML = '';
+        userNameSelect.innerHTML = '';
+        filterNameSelect.innerHTML = '<option value="">Naam</option>';
+        users.forEach(u => {
+            const li = document.createElement('li'); li.textContent=u; usersList.appendChild(li);
+            const opt = document.createElement('option'); opt.value=opt.textContent=u; userNameSelect.appendChild(opt);
+            const fopt = opt.cloneNode(true); filterNameSelect.appendChild(fopt);
+        });
+    }
+    renderUsers();
+
+    usersForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const newUser = document.getElementById('new-user-name').value.trim();
+        if(newUser && !users.includes(newUser)) { users.push(newUser); renderUsers(); saveAll(); }
+        document.getElementById('new-user-name').value='';
+    });
+
+    // --- Agenda render ---
+    function renderEvents(arr) {
+        const sorted = [...arr].sort((a,b)=> new Date(a.date)-new Date(b.date));
+        agendaList.innerHTML='';
+        sorted.forEach((ev,i)=>{
+            const tr=document.createElement('tr'); tr.className='table-row';
+            tr.innerHTML=`
+                <td class="p-3 border-t border-gray-700">${ev.name}</td>
+                <td class="p-3 border-t border-gray-700">${ev.date}</td>
+                <td class="p-3 border-t border-gray-700">${ev.type}</td>
+                <td class="p-3 border-t border-gray-700">${ev.user}</td>
+                <td class="p-3 border-t border-gray-700 text-right">
+                    <button class="delete-event-button text-red-400 hover:text-red-600 transition-colors" data-index="${i}">Verwijder</button>
+                </td>
+            `;
+            agendaList.appendChild(tr);
+        });
+    }
+    renderEvents(events);
+
+    agendaForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const ev={ 
+            name: document.getElementById('event-name').value,
+            date: document.getElementById('event-date').value,
+            type: document.getElementById('event-type').value,
+            user: document.getElementById('user-name').value
+        };
+        events.push(ev); renderEvents(events); saveAll(); agendaForm.reset();
+        showMessage("Evenement toegevoegd!", "bg-green-500", messageBox);
+    });
+
+    agendaList.addEventListener('click', e=>{
+        if(e.target.closest('.delete-event-button')){
+            const idx = e.target.closest('.delete-event-button').dataset.index;
+            events.splice(idx,1); renderEvents(events); saveAll();
+            showMessage("Evenement verwijderd.", "bg-green-500", messageBox);
+        }
+    });
+
+    filterButton.addEventListener('click', ()=>{
+        const month=filterMonthSelect.value; const type=filterTypeSelect.value; const name=filterNameSelect.value;
+        renderEvents(events.filter(ev=>{
+            const m=new Date(ev.date).getMonth()+1;
+            return (!month||month==m)&&(!type||type==ev.type)&&(!name||name==ev.user);
+        }));
+    });
+
+    resetButton.addEventListener('click', ()=>{
+        filterMonthSelect.value=''; filterTypeSelect.value=''; filterNameSelect.value=''; renderEvents(events);
+    });
+
+    // --- Setlijsten / Repertoire / Sheet Music ---
+    // Voor bestanden slaan we base64 op in localStorage
+    function handleFileUpload(form, arr, input, listEl, messageEl, extraFields=[]) {
+        input.addEventListener('change',()=>{ input.files[0]?input.nextElementSibling.textContent=`Geselecteerd: ${input.files[0].name}`:''; });
+        form.addEventListener('submit', e=>{
+            e.preventDefault();
+            const file=input.files[0]; if(!file){ showMessage('Kies een bestand', 'bg-red-500', messageEl); return; }
+            const reader=new FileReader();
+            reader.onload=function(evt){
+                const obj={fileName:file.name,fileData:evt.target.result};
+                extraFields.forEach(f=>obj[f.key]=document.getElementById(f.id).value);
+                arr.push(obj); renderFileList(arr,listEl); saveAll(); form.reset(); input.nextElementSibling.textContent=''; 
+                showMessage("Bestand toegevoegd!", "bg-green-500", messageEl);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    function renderFileList(arr, listEl){
+        listEl.innerHTML='';
+        arr.forEach((item,i)=>{
+            const tr=document.createElement('tr'); tr.className='table-row';
+            const extraCols=Object.keys(item).filter(k=>k!=='fileName'&&k!=='fileData').map(k=>`<td class="p-3 border-t border-gray-700">${item[k]}</td>`).join('');
+            tr.innerHTML=`${extraCols}<td class="p-3 border-t border-gray-700"><a href="${item.fileData}" target="_blank">${item.fileName}</a></td>
+                <td class="p-3 border-t border-gray-700 text-right"><button data-index="${i}" class="delete-file-button text-red-400 hover:text-red-600">Verwijder</button></td>`;
+            listEl.appendChild(tr);
+        });
+    }
+
+    function attachDeleteHandler(arr,listEl){ listEl.addEventListener('click',e=>{
+        if(e.target.closest('.delete-file-button')){
+            const idx=e.target.closest('.delete-file-button').dataset.index; arr.splice(idx,1); renderFileList(arr,listEl); saveAll();
+        }
+    }); }
+
+    handleFileUpload(setlijstenForm,setlijstenFiles,setlijstFileInput,setlijstenList,setlijstMessageBox,[{id:'setlijst-date',key:'date'},{id:'setlijst-description',key:'description'}]);
+    attachDeleteHandler(setlijstenFiles,setlijstenList);
+
+    handleFileUpload(repertoireForm,repertoireFiles,repertoireFileInput,repertoireList,repertoireMessageBox,[{id:'repertoire-artist',key:'artist'}]);
+    attachDeleteHandler(repertoireFiles,repertoireList);
+
+    handleFileUpload(sheetMusicForm,sheetMusicFiles,sheetMusicFileInput,sheetMusicList,sheetMusicMessageBox,[{id:'sheet-music-artist',key:'artist'},{id:'sheet-music-title',key:'title'}]);
+    attachDeleteHandler(sheetMusicFiles,sheetMusicList);
+
+    // --- Menu ---
+    menuLinks.forEach(link=>{
+        link.addEventListener('click', e=>{
+            e.preventDefault();
+            menuLinks.forEach(l=>l.classList.remove('active'));
+            e.target.classList.add('active');
+            contentSections.forEach(s=>s.classList.remove('active'));
+            document.getElementById(e.target.dataset.content).classList.add('active');
+        });
+    });
+
+    // --- Filter sheet music ---
+    sheetMusicFilterButton.addEventListener('click', ()=>{
+        const f=sheetMusicFilterArtistInput.value.toLowerCase();
+        renderFileList(sheetMusicFiles.filter(it=>it.artist.toLowerCase().includes(f)),sheetMusicList);
+    });
+    sheetMusicResetButton.addEventListener('click', ()=>{
+        sheetMusicFilterArtistInput.value=''; renderFileList(sheetMusicFiles,sheetMusicList);
+    });
+});
+</script>
+</body>
+</html>
